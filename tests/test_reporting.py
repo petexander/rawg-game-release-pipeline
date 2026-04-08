@@ -12,14 +12,18 @@ SOURCE_ROOT = PROJECT_ROOT / "src"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from game_release_pipeline.reporting import _render_markdown_table, _rounded_mean, render_release_digest
+from game_release_pipeline.reporting import (
+    _positive_mean,
+    _render_markdown_table,
+    render_release_digest,
+)
 
 
 class ReportingTests(unittest.TestCase):
-    def test_rounded_mean_returns_none_for_all_null_series(self) -> None:
-        series = pd.Series([pd.NA, pd.NA], dtype="Float64")
+    def test_positive_mean_excludes_zero_ratings(self) -> None:
+        series = pd.Series([0.0, 4.0, 5.0], dtype="Float64")
 
-        self.assertIsNone(_rounded_mean(series))
+        self.assertEqual(_positive_mean(series), 4.5)
 
     def test_render_markdown_table_handles_nullable_integer_columns(self) -> None:
         dataframe = pd.DataFrame(
@@ -141,6 +145,8 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("RAWG added", digest)
         self.assertIn("Release Window Summary", digest)
         self.assertNotIn("Monthly Release Trends", digest)
+        self.assertIn("Rated titles in last 90 days", digest)
+        self.assertNotIn("Metacritic", digest)
 
     def test_render_release_digest_handles_windows_with_only_null_metacritic(self) -> None:
         release_calendar = pd.DataFrame(
@@ -184,7 +190,8 @@ class ReportingTests(unittest.TestCase):
         )
 
         self.assertIn("Next 90 days", digest)
-        self.assertIn("n/a", digest)
+        self.assertNotIn("Metacritic", digest)
+        self.assertNotIn("| metacritic |", digest)
 
 
 if __name__ == "__main__":
