@@ -1,0 +1,9 @@
+rawg_release_pipeline:
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', '../game_release.duckdb') }}"
+      schema: analytics
+      threads: 4
+
+  target: dev

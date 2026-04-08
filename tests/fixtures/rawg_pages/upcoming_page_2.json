@@ -1,0 +1,56 @@
+{
+  "count": 4,
+  "next": null,
+  "previous": "https://example.test/upcoming?page=1",
+  "results": [
+    {
+      "id": 2003,
+      "slug": "hinterland-zero",
+      "name": "Hinterland Zero",
+      "released": "2026-09-02",
+      "tba": false,
+      "updated": "2026-04-02T09:00:00",
+      "rating": 3.8,
+      "ratings_count": 52,
+      "metacritic": 75,
+      "added": 610,
+      "platforms": [
+        {"platform": {"id": 7, "name": "Nintendo Switch", "slug": "nintendo-switch"}}
+      ],
+      "genres": [
+        {"id": 83, "name": "Platformer", "slug": "platformer"},
+        {"id": 59, "name": "Massively Multiplayer", "slug": "massively-multiplayer"}
+      ],
+      "stores": [
+        {"store": {"id": 6, "name": "Nintendo Store", "slug": "nintendo"}}
+      ],
+      "esrb_rating": {"id": 1, "name": "Everyone", "slug": "everyone"},
+      "background_image": "https://images.example/hinterland-zero.jpg"
+    },
+    {
+      "id": 2004,
+      "slug": "paper-citadel",
+      "name": "Paper Citadel",
+      "released": "2026-12-11",
+      "tba": false,
+      "updated": "2026-04-05T08:10:00",
+      "rating": 4.6,
+      "ratings_count": 67,
+      "metacritic": 84,
+      "added": 1320,
+      "platforms": [
+        {"platform": {"id": 4, "name": "PC", "slug": "pc"}}
+      ],
+      "genres": [
+        {"id": 10, "name": "Strategy", "slug": "strategy"},
+        {"id": 51, "name": "Indie", "slug": "indie"}
+      ],
+      "stores": [
+        {"store": {"id": 1, "name": "Steam", "slug": "steam"}},
+        {"store": {"id": 5, "name": "GOG", "slug": "gog"}}
+      ],
+      "esrb_rating": {"id": 2, "name": "Everyone 10+", "slug": "everyone-10-plus"},
+      "background_image": "https://images.example/paper-citadel.jpg"
+    }
+  ]
+}

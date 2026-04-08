@@ -1,0 +1,62 @@
+# Claude
+CLAUDE.md
+.claude/
+
+# Local env
+.venv/
+.zed/
+.env
+
+# Working notes
+ai-findings/
+ai-plannings/
+PLAN/
+
+# dbt
+analytics/dbt/target/
+analytics/dbt/.user.yml
+analytics/dbt/dbt_packages/
+analytics/dbt/package-lock.yml
+analytics/dbt/logs/
+
+# DuckDB
+*.duckdb
+*.duckdb.wal
+
+# Output
+output/
+
+# Airflow
+airflow_home/
+logs/
+airflow.db
+airflow.cfg
+webserver_config.py
+standalone_*
+airflow-webserver*
+orchestration/airflow/logs/
+orchestration/airflow/airflow.db
+orchestration/airflow/airflow.cfg
+orchestration/airflow/standalone_admin_password.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+
+# uv
+uv.lock
+
+# Test artifacts
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store

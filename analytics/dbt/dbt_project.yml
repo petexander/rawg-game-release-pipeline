@@ -1,0 +1,15 @@
+name: 'rawg_release_pipeline'
+version: '1.0.0'
+config-version: 2
+
+profile: 'rawg_release_pipeline'
+
+model-paths: ['models']
+models:
+  rawg_release_pipeline:
+    base:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table

@@ -1,0 +1,56 @@
+{
+  "count": 4,
+  "next": null,
+  "previous": "https://example.test/recent?page=1",
+  "results": [
+    {
+      "id": 1003,
+      "slug": "clockwork-drifters",
+      "name": "Clockwork Drifters",
+      "released": "2025-07-08",
+      "tba": false,
+      "updated": "2025-07-15T09:30:00",
+      "rating": 3.9,
+      "ratings_count": 142,
+      "metacritic": 74,
+      "added": 650,
+      "platforms": [
+        {"platform": {"id": 7, "name": "Nintendo Switch", "slug": "nintendo-switch"}}
+      ],
+      "genres": [
+        {"id": 83, "name": "Platformer", "slug": "platformer"}
+      ],
+      "stores": [
+        {"store": {"id": 6, "name": "Nintendo Store", "slug": "nintendo"}}
+      ],
+      "esrb_rating": {"id": 1, "name": "Everyone", "slug": "everyone"},
+      "background_image": "https://images.example/clockwork-drifters.jpg"
+    },
+    {
+      "id": 1004,
+      "slug": "tide-signal",
+      "name": "Tide Signal",
+      "released": "2025-05-22",
+      "tba": false,
+      "updated": "2025-06-01T15:45:00",
+      "rating": 4.5,
+      "ratings_count": 278,
+      "metacritic": 85,
+      "added": 1130,
+      "platforms": [
+        {"platform": {"id": 18, "name": "PlayStation 4", "slug": "playstation4"}},
+        {"platform": {"id": 1, "name": "Xbox One", "slug": "xbox-one"}}
+      ],
+      "genres": [
+        {"id": 3, "name": "Adventure", "slug": "adventure"},
+        {"id": 2, "name": "Shooter", "slug": "shooter"}
+      ],
+      "stores": [
+        {"store": {"id": 3, "name": "PlayStation Store", "slug": "playstation-store"}},
+        {"store": {"id": 2, "name": "Xbox Store", "slug": "xbox-store"}}
+      ],
+      "esrb_rating": {"id": 4, "name": "Mature", "slug": "mature"},
+      "background_image": "https://images.example/tide-signal.jpg"
+    }
+  ]
+}

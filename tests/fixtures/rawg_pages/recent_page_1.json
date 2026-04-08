@@ -1,0 +1,57 @@
+{
+  "count": 4,
+  "next": "https://example.test/recent?page=2",
+  "previous": null,
+  "results": [
+    {
+      "id": 1001,
+      "slug": "orbit-breaker",
+      "name": "Orbit Breaker",
+      "released": "2026-03-02",
+      "tba": false,
+      "updated": "2026-03-05T10:00:00",
+      "rating": 4.7,
+      "ratings_count": 320,
+      "metacritic": 88,
+      "added": 1240,
+      "platforms": [
+        {"platform": {"id": 4, "name": "PC", "slug": "pc"}},
+        {"platform": {"id": 187, "name": "PlayStation 5", "slug": "playstation5"}}
+      ],
+      "genres": [
+        {"id": 4, "name": "Action", "slug": "action"},
+        {"id": 5, "name": "RPG", "slug": "role-playing-games-rpg"}
+      ],
+      "stores": [
+        {"store": {"id": 1, "name": "Steam", "slug": "steam"}}
+      ],
+      "esrb_rating": {"id": 3, "name": "Teen", "slug": "teen"},
+      "background_image": "https://images.example/orbit-breaker.jpg"
+    },
+    {
+      "id": 1002,
+      "slug": "neon-farm-2077",
+      "name": "Neon Farm 2077",
+      "released": "2025-11-14",
+      "tba": false,
+      "updated": "2025-11-20T12:00:00",
+      "rating": 4.1,
+      "ratings_count": 210,
+      "metacritic": 79,
+      "added": 870,
+      "platforms": [
+        {"platform": {"id": 4, "name": "PC", "slug": "pc"}}
+      ],
+      "genres": [
+        {"id": 10, "name": "Simulation", "slug": "simulation"},
+        {"id": 14, "name": "Casual", "slug": "casual"}
+      ],
+      "stores": [
+        {"store": {"id": 1, "name": "Steam", "slug": "steam"}},
+        {"store": {"id": 3, "name": "PlayStation Store", "slug": "playstation-store"}}
+      ],
+      "esrb_rating": {"id": 1, "name": "Everyone", "slug": "everyone"},
+      "background_image": "https://images.example/neon-farm-2077.jpg"
+    }
+  ]
+}

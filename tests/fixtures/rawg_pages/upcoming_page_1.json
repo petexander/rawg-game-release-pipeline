@@ -1,0 +1,57 @@
+{
+  "count": 4,
+  "next": "https://example.test/upcoming?page=2",
+  "previous": null,
+  "results": [
+    {
+      "id": 2001,
+      "slug": "skyline-echo",
+      "name": "Skyline Echo",
+      "released": "2026-05-14",
+      "tba": false,
+      "updated": "2026-04-01T11:00:00",
+      "rating": 4.2,
+      "ratings_count": 95,
+      "metacritic": 81,
+      "added": 980,
+      "platforms": [
+        {"platform": {"id": 4, "name": "PC", "slug": "pc"}},
+        {"platform": {"id": 187, "name": "PlayStation 5", "slug": "playstation5"}}
+      ],
+      "genres": [
+        {"id": 3, "name": "Adventure", "slug": "adventure"},
+        {"id": 51, "name": "Indie", "slug": "indie"}
+      ],
+      "stores": [
+        {"store": {"id": 1, "name": "Steam", "slug": "steam"}}
+      ],
+      "esrb_rating": {"id": 3, "name": "Teen", "slug": "teen"},
+      "background_image": "https://images.example/skyline-echo.jpg"
+    },
+    {
+      "id": 2002,
+      "slug": "ember-cartel",
+      "name": "Ember Cartel",
+      "released": "2026-07-19",
+      "tba": false,
+      "updated": "2026-04-03T14:20:00",
+      "rating": 4.0,
+      "ratings_count": 120,
+      "metacritic": 78,
+      "added": 1040,
+      "platforms": [
+        {"platform": {"id": 1, "name": "Xbox One", "slug": "xbox-one"}},
+        {"platform": {"id": 186, "name": "Xbox Series S/X", "slug": "xbox-series-x"}}
+      ],
+      "genres": [
+        {"id": 5, "name": "RPG", "slug": "role-playing-games-rpg"},
+        {"id": 2, "name": "Shooter", "slug": "shooter"}
+      ],
+      "stores": [
+        {"store": {"id": 2, "name": "Xbox Store", "slug": "xbox-store"}}
+      ],
+      "esrb_rating": {"id": 4, "name": "Mature", "slug": "mature"},
+      "background_image": "https://images.example/ember-cartel.jpg"
+    }
+  ]
+}
