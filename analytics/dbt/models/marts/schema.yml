@@ -22,18 +22,8 @@ models:
       - name: genre_names
         description: "Comma-separated genre summary for the title."
 
-  - name: marts_games__monthly_trends
-    description: "Monthly platform-level trend mart used in the generated Markdown digest."
-    columns:
-      - name: release_month
-        tests:
-          - not_null
-      - name: primary_platform
-        tests:
-          - not_null
-
   - name: marts_games__top_titles
-    description: "Curated ranking slices for high-signal report sections."
+    description: "Curated ranking slices for near-term report sections."
     columns:
       - name: title_group
         tests:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import math
 from pathlib import Path
 
@@ -79,110 +79,252 @@ def _format_table_value(value: object) -> str:
     return str(value)
 
 
+def _slice_release_window(
+    release_calendar: pd.DataFrame,
+    *,
+    release_bucket: str,
+    min_days: int,
+    max_days: int,
+) -> pd.DataFrame:
+    return release_calendar[
+        (release_calendar["release_bucket"] == release_bucket)
+        & release_calendar["days_from_snapshot"].between(min_days, max_days, inclusive="both")
+    ].copy()
+
+
+def _rounded_mean(series: pd.Series) -> float | None:
+    value = series.dropna().mean()
+    if value is None or pd.isna(value):
+        return None
+    return round(float(value), 2)
+
+
+def _build_window_summary(release_calendar: pd.DataFrame) -> pd.DataFrame:
+    windows = [
+        ("Last 30 days", "recent", -30, 0),
+        ("Last 90 days", "recent", -90, 0),
+        ("Next 30 days", "upcoming", 1, 30),
+        ("Next 90 days", "upcoming", 1, 90),
+        ("Days 91-365 ahead", "upcoming", 91, 365),
+    ]
+    rows: list[dict[str, object]] = []
+
+    for label, release_bucket, min_days, max_days in windows:
+        frame = _slice_release_window(
+            release_calendar,
+            release_bucket=release_bucket,
+            min_days=min_days,
+            max_days=max_days,
+        )
+
+        standout_title = "n/a"
+        standout_metric = "n/a"
+        if not frame.empty:
+            if release_bucket == "recent":
+                standout = frame.sort_values(
+                    by=["rating", "metacritic", "released", "game_name"],
+                    ascending=[False, False, False, True],
+                    na_position="last",
+                ).iloc[0]
+                standout_title = str(standout["game_name"])
+                standout_metric = f"rating {_format_table_value(standout['rating'])}"
+            else:
+                standout = frame.sort_values(
+                    by=["added", "rating", "released", "game_name"],
+                    ascending=[False, False, True, True],
+                    na_position="last",
+                ).iloc[0]
+                standout_title = str(standout["game_name"])
+                standout_metric = f"RAWG added {_format_table_value(standout['added'])}"
+
+        rows.append(
+            {
+                "window": label,
+                "titles": len(frame),
+                "avg_rating": _rounded_mean(frame["rating"]) if not frame.empty else None,
+                "avg_metacritic": _rounded_mean(frame["metacritic"]) if not frame.empty else None,
+                "standout": standout_title,
+                "standout_metric": standout_metric,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def _count_values(values: pd.Series, label: str) -> pd.DataFrame:
+    dataframe = (
+        values.fillna("Unknown")
+        .value_counts()
+        .head(5)
+        .rename_axis(label)
+        .reset_index(name="titles")
+    )
+    return dataframe
+
+
+def _split_and_count(values: pd.Series, label: str) -> pd.DataFrame:
+    counts: dict[str, int] = {}
+    for value in values.dropna():
+        for item in [part.strip() for part in str(value).split(",") if part.strip()]:
+            counts[item] = counts.get(item, 0) + 1
+
+    if not counts:
+        return pd.DataFrame(columns=[label, "titles"])
+
+    return pd.DataFrame(
+        [{label: name, "titles": count} for name, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:5]]
+    )
+
+
+def _format_highlight(value: object, prefix: str) -> str:
+    if value is None or pd.isna(value):
+        return "n/a"
+    return f"{prefix}{_format_table_value(value)}"
+
+
+def _select_report_columns(
+    dataframe: pd.DataFrame,
+    columns: list[str],
+    rename_map: dict[str, str],
+) -> pd.DataFrame:
+    return dataframe.reindex(columns=columns).rename(columns=rename_map)
+
+
 def render_release_digest(
     *,
     snapshot_date: date,
     release_calendar: pd.DataFrame,
-    monthly_trends: pd.DataFrame,
     top_titles: pd.DataFrame,
 ) -> str:
     """Render the stakeholder Markdown digest."""
 
-    recent_titles = release_calendar[release_calendar["release_bucket"] == "recent"]
-    upcoming_titles = release_calendar[release_calendar["release_bucket"] == "upcoming"]
-    rated_recent = recent_titles[recent_titles["rating"].fillna(0) > 0]
+    recent_30 = _slice_release_window(release_calendar, release_bucket="recent", min_days=-30, max_days=0)
+    recent_90 = _slice_release_window(release_calendar, release_bucket="recent", min_days=-90, max_days=0)
+    upcoming_30 = _slice_release_window(release_calendar, release_bucket="upcoming", min_days=1, max_days=30)
+    upcoming_90 = _slice_release_window(release_calendar, release_bucket="upcoming", min_days=1, max_days=90)
+    full_window_summary = _build_window_summary(release_calendar)
 
-    top_platforms = (
-        release_calendar["primary_platform"]
-        .fillna("Unknown")
-        .value_counts()
-        .head(5)
-        .rename_axis("platform")
-        .reset_index(name="titles")
+    top_platforms = _count_values(
+        upcoming_90["primary_platform"],
+        "platform",
     )
+    top_genres = _split_and_count(upcoming_90["genre_names"], "genre")
 
-    genre_counts: dict[str, int] = {}
-    for value in release_calendar["genre_names"].dropna():
-        for genre in [item.strip() for item in value.split(",") if item.strip()]:
-            genre_counts[genre] = genre_counts.get(genre, 0) + 1
-    top_genres = (
-        pd.DataFrame(
-            [{"genre": genre, "titles": count} for genre, count in sorted(genre_counts.items(), key=lambda item: (-item[1], item[0]))[:5]]
-        )
-        if genre_counts
-        else pd.DataFrame(columns=["genre", "titles"])
-    )
+    top_upcoming = top_titles[top_titles["title_group"] == "upcoming_next_90_most_added"].head(5).copy()
+    if not top_upcoming.empty:
+        top_upcoming["days_until_release"] = top_upcoming["days_from_snapshot"]
 
-    top_upcoming = top_titles[top_titles["title_group"] == "upcoming_most_anticipated"].head(5)
-    top_recent = top_titles[top_titles["title_group"] == "recent_highest_rated"].head(5)
-    trend_excerpt = monthly_trends.head(12)
+    top_recent = top_titles[top_titles["title_group"] == "recent_last_90_highest_rated"].head(5).copy()
+    if not top_recent.empty:
+        top_recent["days_since_release"] = top_recent["days_from_snapshot"].abs()
+
+    recent_start = release_calendar["window_start_date"].dropna().min()
+    upcoming_end = release_calendar["window_end_date"].dropna().max()
+    upcoming_start = snapshot_date + timedelta(days=1)
+
+    recent_highlight = top_recent.iloc[0] if not top_recent.empty else None
+    upcoming_highlight = top_upcoming.iloc[0] if not top_upcoming.empty else None
 
     lines = [
         "# RAWG Game Release Digest",
         "",
-        f"Snapshot date: **{snapshot_date.isoformat()}**",
-        "",
         "Source: [RAWG Video Games Database](https://rawg.io/apidocs)",
         "",
-        "## Headline KPIs",
+        "## Coverage",
+        "",
+        f"- Snapshot date: **{snapshot_date.isoformat()}**",
+        f"- Recent release window: **{_format_table_value(recent_start)}** to **{snapshot_date.isoformat()}**",
+        f"- Upcoming release window: **{upcoming_start.isoformat()}** to **{_format_table_value(upcoming_end)}**",
+        "",
+        "## Near-Term Snapshot",
         "",
         f"- Titles in current snapshot: {_format_metric(len(release_calendar), digits=0)}",
-        f"- Upcoming titles: {_format_metric(len(upcoming_titles), digits=0)}",
-        f"- Recent releases: {_format_metric(len(recent_titles), digits=0)}",
-        f"- Average recent rating: {_format_metric(rated_recent['rating'].mean())}",
-        f"- Average recent Metacritic: {_format_metric(recent_titles['metacritic'].dropna().mean())}",
+        f"- Releases in last 30 days: {_format_metric(len(recent_30), digits=0)}",
+        f"- Releases in last 90 days: {_format_metric(len(recent_90), digits=0)}",
+        f"- Releases in next 30 days: {_format_metric(len(upcoming_30), digits=0)}",
+        f"- Releases in next 90 days: {_format_metric(len(upcoming_90), digits=0)}",
+        (
+            f"- Best-rated recent release: {recent_highlight['game_name']} "
+            f"({_format_highlight(recent_highlight['rating'], '')})"
+            if recent_highlight is not None
+            else "- Best-rated recent release: n/a"
+        ),
+        (
+            f"- Most anticipated upcoming release: {upcoming_highlight['game_name']} "
+            f"({_format_highlight(upcoming_highlight['added'], 'RAWG added ')})"
+            if upcoming_highlight is not None
+            else "- Most anticipated upcoming release: n/a"
+        ),
         "",
-        "## Top Upcoming Releases",
+        "## Release Window Summary",
+        "",
+        _render_markdown_table(full_window_summary),
+        "",
+        "## Upcoming Releases in Next 90 Days",
         "",
         _render_markdown_table(
-            top_upcoming.loc[
-                :,
-                ["rank_in_group", "game_name", "released", "primary_platform", "genre_names", "added"],
-            ].rename(
-                columns={
+            _select_report_columns(
+                top_upcoming,
+                [
+                    "rank_in_group",
+                    "game_name",
+                    "released",
+                    "days_until_release",
+                    "primary_platform",
+                    "genre_names",
+                    "added",
+                ],
+                {
                     "rank_in_group": "rank",
                     "game_name": "title",
                     "released": "release_date",
+                    "days_until_release": "days_until_release",
                     "primary_platform": "platform",
                     "genre_names": "genres",
-                    "added": "added_score",
-                }
+                    "added": "RAWG added",
+                },
             )
         ),
         "",
-        "## Highest Rated Recent Releases",
+        "## Recent Release Highlights",
         "",
         _render_markdown_table(
-            top_recent.loc[
-                :,
-                ["rank_in_group", "game_name", "released", "primary_platform", "genre_names", "rating", "metacritic"],
-            ].rename(
-                columns={
+            _select_report_columns(
+                top_recent,
+                [
+                    "rank_in_group",
+                    "game_name",
+                    "released",
+                    "days_since_release",
+                    "primary_platform",
+                    "genre_names",
+                    "rating",
+                    "metacritic",
+                ],
+                {
                     "rank_in_group": "rank",
                     "game_name": "title",
                     "released": "release_date",
+                    "days_since_release": "days_since_release",
                     "primary_platform": "platform",
                     "genre_names": "genres",
-                }
+                },
             )
         ),
         "",
-        "## Monthly Release Trends",
-        "",
-        _render_markdown_table(trend_excerpt),
-        "",
-        "## Platform Mix",
+        "## Upcoming Platform Mix (Next 90 Days)",
         "",
         _render_markdown_table(top_platforms),
         "",
-        "## Genre Mix",
+        "## Upcoming Genre Mix (Next 90 Days)",
         "",
         _render_markdown_table(top_genres),
         "",
         "## Notes",
         "",
-        "- Airflow and the local CLI both generate these same report artifacts.",
-        "- CI uses fixture-backed RAWG responses so automated runs do not rely on live API access.",
+        "- `RAWG added` is the platform interest count RAWG exposes and uses for popularity or anticipation-style sorting.",
+        "- The report keeps the one-year recent and one-year upcoming snapshot in the warehouse, but surfaces the next 90 days and last 90 days for faster interpretation.",
+        "- Airflow and the package CLI generate the same final report artifacts.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -197,6 +339,8 @@ def export_reports(settings: PipelineSettings, snapshot_date: date) -> ReportArt
             """
             SELECT
                 snapshot_date,
+                window_start_date,
+                window_end_date,
                 game_id,
                 game_name,
                 release_bucket,
@@ -222,20 +366,6 @@ def export_reports(settings: PipelineSettings, snapshot_date: date) -> ReportArt
                 game_name
             """
         ).df()
-        monthly_trends = conn.execute(
-            """
-            SELECT
-                release_month,
-                primary_platform,
-                total_titles,
-                upcoming_titles,
-                recent_titles,
-                avg_recent_rating,
-                avg_metacritic
-            FROM analytics.marts_games__monthly_trends
-            ORDER BY release_month, total_titles DESC, primary_platform
-            """
-        ).df()
         top_titles = conn.execute(
             """
             SELECT
@@ -243,6 +373,7 @@ def export_reports(settings: PipelineSettings, snapshot_date: date) -> ReportArt
                 rank_in_group,
                 game_name,
                 released,
+                days_from_snapshot,
                 primary_platform,
                 genre_names,
                 rating,
@@ -260,7 +391,6 @@ def export_reports(settings: PipelineSettings, snapshot_date: date) -> ReportArt
         render_release_digest(
             snapshot_date=snapshot_date,
             release_calendar=release_calendar,
-            monthly_trends=monthly_trends,
             top_titles=top_titles,
         ),
         encoding="utf-8",

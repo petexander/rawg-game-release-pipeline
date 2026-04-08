@@ -1,94 +1,114 @@
 # Setup
 
-This project is built for local runs with DuckDB and `uv`. You do not need Docker, a cloud warehouse, or any external scheduler to get the main pipeline working.
+This project is designed to run locally with `uv`, DuckDB, and dbt. The default path does not require Docker, a cloud warehouse, or Airflow.
 
 ## Prerequisites
 
 - `uv`
-- a free RAWG API key for live runs
+- RAWG API key only if you want live ingestion instead of the fixture-backed demo path
 
-## Local Pipeline
+## Recommended First Run
 
-From the repository root:
+Use the recorded RAWG fixtures for a deterministic end-to-end run:
 
 ```bash
-cp .env.example .env
 uv sync
-uv run --env-file .env python scripts/run_local_pipeline.py
+uv run game-release-pipeline run --fixtures-dir tests/fixtures/rawg_pages --as-of-date 2026-04-08
 ```
 
 That command will:
 
-- fetch a bounded recent + upcoming RAWG snapshot
-- write raw tables into `DUCKDB_PATH`
-- build dbt base, intermediate, and marts layers
-- run mart quality checks
+- load a point-in-time snapshot into DuckDB
+- run dbt base, intermediate, and mart models
+- run dbt tests plus explicit mart checks
 - export Markdown and CSV reports to `output/reports/`
 
-### Reproducible Runs
-
-Use `--as-of-date` to pin the logical run date:
+## Live API Run
 
 ```bash
-uv run --env-file .env python scripts/run_local_pipeline.py --as-of-date 2026-04-08
+cp .env.example .env
+# set RAWG_API_KEY
+uv run --env-file .env game-release-pipeline run
 ```
 
-### Fixture-Backed Smoke Run
-
-Use the recorded fixtures when you want a deterministic local or CI run without a live API key:
+Useful variants:
 
 ```bash
-uv run python scripts/run_local_pipeline.py --fixtures-dir tests/fixtures/rawg_pages --as-of-date 2026-04-08
+uv run --env-file .env game-release-pipeline run --as-of-date 2026-04-08
+uv run --env-file .env game-release-pipeline ingest --as-of-date 2026-04-08
 ```
 
-## Ingestion Only
+## Environment Variables
 
-If you want to inspect the raw schema without building dbt:
+The local CLI uses `.env.example` as the template for live runs:
 
 ```bash
-uv run --env-file .env python scripts/ingest_rawg.py
+RAWG_API_KEY=your_rawg_api_key
+RAWG_BASE_URL=https://api.rawg.io/api
+DUCKDB_PATH=./game_release.duckdb
+RAWG_PAGE_SIZE=40
+RAWG_MAX_PAGES_PER_SEGMENT=3
+RAWG_REQUEST_TIMEOUT_SECONDS=30
+RAWG_REQUEST_RETRY_ATTEMPTS=3
+RAWG_REQUEST_RETRY_BACKOFF_SECONDS=1.0
 ```
 
-## dbt Commands
+## Running dbt Directly
 
-The Python runner sets `DBT_PROFILES_DIR` automatically, but you can run dbt manually from `analytics/dbt/`:
+The package CLI configures dbt automatically, but manual dbt commands are available if you want to inspect the transformation layers:
 
 ```bash
 cd analytics/dbt
 export DBT_PROFILES_DIR=$(pwd)
 export DUCKDB_PATH=$(pwd)/../../game_release.duckdb
 
-uv run python -m dbt.cli.main debug
-uv run python -m dbt.cli.main run --select path:models/base
-uv run python -m dbt.cli.main run --select path:models/intermediate
-uv run python -m dbt.cli.main run --select path:models/marts
-uv run python -m dbt.cli.main test --select marts_games__release_calendar
+uv run dbt debug
+uv run dbt run --select path:models/base
+uv run dbt run --select path:models/intermediate
+uv run dbt run --select path:models/marts
+uv run dbt test --select marts_games__release_calendar marts_games__top_titles
 ```
 
-## Airflow
+## Optional Airflow
 
-Airflow is optional and uses the same shared orchestration code as the CLI runner.
+Airflow is present as a secondary showcase path. It is not required for the main local run.
 
-1. Copy `default.env` to `.env`.
-2. Replace the placeholder paths with absolute paths to this repository.
-3. Set `RAWG_API_KEY`.
-4. Start Airflow:
+Install the optional dependency set:
 
 ```bash
-uv run --env-file .env airflow standalone
+uv sync --extra airflow
 ```
 
-Useful commands:
+Then configure Airflow-specific environment variables in your shell:
 
 ```bash
-uv run --env-file .env airflow dags list
-uv run --env-file .env airflow dags show rawg_game_release_pipeline
-uv run --env-file .env airflow dags trigger rawg_game_release_pipeline
-uv run --env-file .env airflow tasks test rawg_game_release_pipeline run_base 2026-04-08
+export AIRFLOW_HOME=$(pwd)/orchestration/airflow
+export PYTHONPATH=$(pwd)/orchestration/airflow
+```
+
+Start Airflow:
+
+```bash
+uv run airflow standalone
+```
+
+Useful Airflow commands:
+
+```bash
+uv run airflow dags list
+uv run airflow dags show rawg_game_release_pipeline
+uv run airflow dags trigger rawg_game_release_pipeline
+uv run airflow tasks test rawg_game_release_pipeline run_base 2026-04-08
+```
+
+## Testing
+
+```bash
+uv run python -m unittest discover -s tests -v
 ```
 
 ## Troubleshooting
 
-- Missing `RAWG_API_KEY`: use `.env.example` or run against fixtures instead.
-- Empty marts: confirm ingestion succeeded by querying `raw.ingestion_runs`.
+- Missing `RAWG_API_KEY`: use `.env.example` for live runs or use the fixture-backed command instead.
+- Empty marts: inspect `raw.ingestion_runs` and confirm the ingestion step succeeded.
 - DuckDB lock issues: close other write-mode processes using the same `.duckdb` file.

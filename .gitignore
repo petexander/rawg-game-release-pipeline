@@ -10,7 +10,6 @@ CLAUDE.md
 # Working notes
 ai-findings/
 ai-plannings/
-PLAN/
 
 # dbt
 analytics/dbt/target/
@@ -43,6 +42,7 @@ orchestration/airflow/standalone_admin_password.txt
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
 
 # Jupyter
 .ipynb_checkpoints/

@@ -5,7 +5,7 @@ with release_calendar as (
 
 recent_ranked as (
     select
-        'recent_highest_rated' as title_group,
+        'recent_last_90_highest_rated' as title_group,
         row_number() over (
             order by rating desc nulls last, metacritic desc nulls last, released desc nulls last, game_name
         ) as rank_in_group,
@@ -13,6 +13,7 @@ recent_ranked as (
         game_id,
         game_name,
         released,
+        days_from_snapshot,
         primary_platform,
         genre_names,
         rating,
@@ -21,11 +22,12 @@ recent_ranked as (
         source_url
     from release_calendar
     where release_bucket = 'recent'
+        and days_from_snapshot between -90 and 0
 ),
 
 upcoming_ranked as (
     select
-        'upcoming_most_anticipated' as title_group,
+        'upcoming_next_90_most_added' as title_group,
         row_number() over (
             order by added desc nulls last, rating desc nulls last, released asc nulls last, game_name
         ) as rank_in_group,
@@ -33,6 +35,7 @@ upcoming_ranked as (
         game_id,
         game_name,
         released,
+        days_from_snapshot,
         primary_platform,
         genre_names,
         rating,
@@ -41,6 +44,7 @@ upcoming_ranked as (
         source_url
     from release_calendar
     where release_bucket = 'upcoming'
+        and days_from_snapshot between 1 and 90
 )
 
 select *

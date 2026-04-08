@@ -1,105 +1,77 @@
 # RAWG Game Release Pipeline
 
-Local-first data engineering portfolio project that ingests live video game release data from the RAWG API, stores snapshots in DuckDB, transforms them with dbt, and publishes a stakeholder-friendly Markdown + CSV report. The repository keeps Airflow in the stack, but optimizes the main developer experience around a simple local CLI run.
+Public-facing data engineering portfolio project that ingests game release data from the RAWG API, stores a point-in-time snapshot in DuckDB, models it with dbt, and publishes a readable release briefing as Markdown and CSV.
 
-## Why This Project Exists
+The repo is optimized for a fast local demo. Airflow is included as an optional orchestration showcase, not as the default way to run the project.
 
-This repo is designed to show an end-to-end data engineering workflow in a form that is easy for hiring managers to scan:
+## What This Demonstrates
 
-- live API ingestion with retry handling and snapshot metadata
-- raw-to-mart transformations in dbt
-- local orchestration with both a direct CLI path and an Airflow DAG
-- visible output artifacts instead of only internal tables
-- fixture-backed automated tests so CI does not depend on secrets
+- API ingestion with retry handling and snapshot metadata
+- Raw-to-mart transformation patterns in dbt
+- Local-first analytics infrastructure using DuckDB
+- Reusable Python orchestration shared by CLI and Airflow
+- Visible stakeholder output instead of only internal tables
+- Fixture-backed tests so CI and onboarding do not depend on API credentials
 
 ## Architecture
 
-`RAWG API -> Python ingestion -> DuckDB raw schema -> dbt base/intermediate/marts -> Markdown + CSV reports`
+`RAWG API -> Python ingestion -> DuckDB raw schema -> dbt models -> Markdown + CSV report artifacts`
 
-Core runtime pieces:
+Key runtime areas:
 
-- `scripts/run_local_pipeline.py`: primary one-command local runner
-- `scripts/ingest_rawg.py`: raw ingestion only
-- `src/game_release_pipeline/`: shared ingestion, dbt, quality-check, and reporting logic
-- `analytics/dbt/`: layered dbt project
-- `orchestration/airflow/dags/pipeline.py`: optional Airflow DAG using the same shared Python code
-
-## Repository Layout
-
-- `src/game_release_pipeline/` contains the reusable Python application code for ingestion, orchestration, storage, and reporting.
-- `analytics/dbt/` contains the dbt project that turns raw API snapshots into reporting marts.
-- `orchestration/airflow/` contains the Airflow DAG and Airflow-only runtime helpers.
-- `scripts/` contains thin local wrappers for the shared package.
-- `tests/` contains fixture-backed verification.
-- `docs/` and `analysis/` contain secondary setup notes and ad hoc exploration material.
+- `src/game_release_pipeline/`: package code for ingestion, orchestration, dbt execution, and reporting
+- `analytics/dbt/`: base, intermediate, and mart models
+- `tests/fixtures/rawg_pages/`: deterministic API fixtures used for smoke tests and no-key demo runs
+- `orchestration/airflow/`: optional Airflow DAG and Airflow-only runtime helpers
 
 ## Quickstart
 
-1. Install `uv`.
-2. Copy the env template and add your RAWG API key.
-3. Sync dependencies.
-4. Run the full pipeline.
+Run the project locally without an API key:
+
+```bash
+uv sync
+uv run game-release-pipeline run --fixtures-dir tests/fixtures/rawg_pages --as-of-date 2026-04-08
+```
+
+This produces:
+
+- `output/reports/game_release_calendar_2026-04-08.csv`
+- `output/reports/game_release_digest_2026-04-08.md`
+
+The generated digest is a near-term release briefing. It explains:
+
+- what snapshot date the report uses
+- which recent and upcoming windows the dataset covers
+- which titles are most relevant in the next 90 days
+- how platform and genre mix look in the near-term release slate
+
+## Live RAWG Run
+
+To run against the live API instead of fixtures:
 
 ```bash
 cp .env.example .env
-uv sync
-uv run --env-file .env python scripts/run_local_pipeline.py
+# add your RAWG_API_KEY
+uv run --env-file .env game-release-pipeline run
 ```
 
-Primary output artifacts:
+## Why The Repo Is Shaped This Way
 
-- `output/reports/game_release_calendar_<date>.csv`
-- `output/reports/game_release_digest_<date>.md`
-
-For a no-key smoke run using fixture data:
-
-```bash
-uv run python scripts/run_local_pipeline.py --fixtures-dir tests/fixtures/rawg_pages --as-of-date 2026-04-08
-```
-
-## Optional Airflow Run
-
-Airflow is included as an orchestration showcase, not the required local entrypoint.
-
-```bash
-cp default.env .env
-# fill in absolute paths and RAWG_API_KEY
-uv run --env-file .env airflow standalone
-```
-
-Then open `http://localhost:8080`, enable `rawg_game_release_pipeline`, and trigger a run.
-
-## Sample Output Shape
-
-The generated Markdown digest includes:
-
-- snapshot date and RAWG attribution
-- headline KPIs for recent and upcoming titles
-- top upcoming releases
-- highest-rated recent releases
-- monthly platform trend table
-- platform and genre mix summaries
-
-The CSV export contains one row per game from `analytics.marts_games__release_calendar`.
+- Fixture-first onboarding lowers friction for reviewers and hiring managers.
+- The data model keeps a one-year recent and one-year upcoming window, but the report focuses on the last 90 days and next 90 days because that is easier to interpret quickly.
+- Airflow stays optional so the main path remains lightweight while still demonstrating orchestration awareness.
 
 ## Testing
-
-Automated tests are fixture-backed. CI uses recorded JSON pages under `tests/fixtures/rawg_pages/` so it can validate ingestion, dbt modeling, and report generation without hitting the live API.
-
-Run locally:
 
 ```bash
 uv run python -m unittest discover -s tests -v
 ```
 
-## Tradeoffs
+## Further Reading
 
-- The snapshot is intentionally bounded so the project stays fast to run locally.
-- Airflow remains optional to avoid making local setup heavier than the portfolio signal justifies.
-- The report emphasizes clarity over exhaustive game coverage or a complex warehouse design.
+- [Setup guide](docs/setup.md)
+- [Portfolio notes](docs/portfolio-notes.md)
 
 ## Attribution
 
-Data is sourced from the [RAWG Video Games Database](https://rawg.io/apidocs). If you publish generated outputs, keep the RAWG attribution/backlink in place.
-
-Additional setup and design notes live in [docs/setup.md](/Users/petershatwell/Documents/coding-sandbox/data-challenge-copy/docs/setup.md) and [docs/portfolio-notes.md](/Users/petershatwell/Documents/coding-sandbox/data-challenge-copy/docs/portfolio-notes.md).
+Data is sourced from the [RAWG Video Games Database](https://rawg.io/apidocs). If you publish generated outputs, keep RAWG attribution and the source link in place.

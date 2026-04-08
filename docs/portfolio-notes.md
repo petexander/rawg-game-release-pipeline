@@ -1,29 +1,30 @@
 # Portfolio Notes
 
-## Design Goals
+## Project Intent
 
-- Keep the repo runnable on a laptop with one primary command.
-- Show a clear separation between ingestion, transformation, orchestration, and reporting.
-- Preserve enough operational realism to be credible without turning the project into infrastructure overhead.
+This repository is designed to show an end-to-end data engineering workflow in a form that is fast for a reviewer to understand:
 
-## Repository Layout
+- one public CLI for the default local run
+- a clear split between ingestion, modeling, orchestration, and reporting
+- visible final artifacts instead of only warehouse tables
+- deterministic tests that do not require secrets
 
-- `src/game_release_pipeline/` is the reusable application layer.
-- `analytics/dbt/` is the transformation layer.
-- `orchestration/airflow/` is the optional orchestration runtime.
-- `scripts/` is for thin wrappers only.
-- `analysis/sql/` is for exploratory queries, not runtime code.
+## Deliberate Tradeoffs
 
-## Deliberate Scope Choices
+- The warehouse keeps a bounded one-year recent and one-year upcoming snapshot instead of attempting full historical backfill.
+- The generated report focuses on the last 90 days and next 90 days, because those windows are easier to interpret than full-month aggregates over sparse data.
+- DuckDB is the default runtime because it keeps the project portable and fast to review on a laptop.
+- Airflow remains in the repo as an optional orchestration signal, but the main developer experience is intentionally lighter weight.
 
-- The pipeline uses the RAWG `games` list endpoint only for v1.
-- Raw nested arrays stay as JSON in `raw.rawg_games_snapshot`, then dbt handles flattening into bridge models.
-- Airflow is optional because it is valuable as a portfolio signal but too heavy to force as the only local entrypoint.
-- CI runs against fixture pages so automated verification is deterministic and secret-free.
+## Modeling Decisions
 
-## Future Extensions
+- Nested RAWG arrays stay raw as JSON in the ingestion table and are flattened in dbt models.
+- The mart layer centers on a release calendar table with one row per title in the latest snapshot.
+- A separate ranked-titles mart supports the report’s curated near-term highlight sections.
 
-- Incremental historical marts across many snapshot dates
-- richer dimensional models for publishers, developers, and stores
-- a lightweight dashboard over the exported marts
-- containerized local runtime for fully reproducible onboarding
+## What I Would Extend Next
+
+- historical snapshots across multiple run dates
+- richer dimensions for publishers, developers, and storefronts
+- a dashboard or notebook layer on top of the exported marts
+- packaging the Airflow path so it requires less manual environment setup

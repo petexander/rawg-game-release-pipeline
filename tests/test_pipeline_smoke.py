@@ -7,6 +7,7 @@ import sys
 import unittest
 
 import duckdb
+import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = PROJECT_ROOT / "src"
@@ -42,6 +43,10 @@ class PipelineSmokeTests(unittest.TestCase):
             self.assertTrue(result.reports.csv_path.exists())
             self.assertTrue(result.reports.markdown_path.exists())
             self.assertGreater(result.ingestion.rows_loaded, 0)
+
+            exported_calendar = pd.read_csv(result.reports.csv_path)
+            self.assertIn("window_start_date", exported_calendar.columns)
+            self.assertIn("window_end_date", exported_calendar.columns)
 
             with duckdb.connect(str(settings.duckdb_path), read_only=True) as conn:
                 mart_row_count = conn.execute(

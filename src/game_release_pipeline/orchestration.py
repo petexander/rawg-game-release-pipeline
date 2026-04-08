@@ -60,7 +60,6 @@ def check_mart_quality(settings: PipelineSettings) -> None:
         settings,
         [
             "marts_games__release_calendar",
-            "marts_games__monthly_trends",
             "marts_games__top_titles",
             "base_rawg__game_platforms",
         ],

@@ -1,14 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "rawg-game-release-pipeline"
 version = "0.1.0"
 description = "Local-first data engineering portfolio project using RAWG, DuckDB, dbt, and Airflow"
+readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "apache-airflow==2.11.0",
     "dbt-core>=1.7.0",
     "dbt-duckdb>=1.7.0",
     "duckdb>=0.9.0",
-    "notebook>=7.0.0",
-    "jupyterlab>=4.0.0",
     "pandas>=2.0.0",
 ]
+
+[project.optional-dependencies]
+airflow = [
+    "apache-airflow==2.11.0",
+]
+
+[project.scripts]
+game-release-pipeline = "game_release_pipeline.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

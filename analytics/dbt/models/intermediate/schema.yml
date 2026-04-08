@@ -13,6 +13,3 @@ models:
 
   - name: int_games__genre_summary
     description: "Per-game genre rollup for final reporting."
-
-  - name: int_games__monthly_platform_releases
-    description: "Monthly trend aggregation by platform for the latest snapshot."

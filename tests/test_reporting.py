@@ -12,10 +12,15 @@ SOURCE_ROOT = PROJECT_ROOT / "src"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from game_release_pipeline.reporting import _render_markdown_table, render_release_digest
+from game_release_pipeline.reporting import _render_markdown_table, _rounded_mean, render_release_digest
 
 
 class ReportingTests(unittest.TestCase):
+    def test_rounded_mean_returns_none_for_all_null_series(self) -> None:
+        series = pd.Series([pd.NA, pd.NA], dtype="Float64")
+
+        self.assertIsNone(_rounded_mean(series))
+
     def test_render_markdown_table_handles_nullable_integer_columns(self) -> None:
         dataframe = pd.DataFrame(
             {
@@ -65,52 +70,53 @@ class ReportingTests(unittest.TestCase):
         release_calendar = pd.DataFrame(
             [
                 {
+                    "window_start_date": pd.Timestamp("2025-04-08"),
+                    "window_end_date": pd.Timestamp("2027-04-08"),
                     "release_bucket": "recent",
+                    "game_name": "Orbit Breaker",
+                    "released": pd.Timestamp("2026-03-02"),
+                    "days_from_snapshot": -37,
                     "rating": 4.7,
                     "metacritic": 88,
                     "primary_platform": "PC",
                     "genre_names": "Action, RPG",
+                    "added": 1240,
                 },
                 {
+                    "window_start_date": pd.Timestamp("2025-04-08"),
+                    "window_end_date": pd.Timestamp("2027-04-08"),
                     "release_bucket": "upcoming",
+                    "game_name": "Skyline Echo",
+                    "released": pd.Timestamp("2026-05-14"),
+                    "days_from_snapshot": 36,
                     "rating": 4.2,
-                    "metacritic": None,
+                    "metacritic": 81,
                     "primary_platform": "PlayStation 5",
                     "genre_names": "Adventure",
+                    "added": 980,
                 },
-            ]
-        )
-        monthly_trends = pd.DataFrame(
-            [
-                {
-                    "release_month": "2026-05-01",
-                    "primary_platform": "PC",
-                    "total_titles": 2,
-                    "upcoming_titles": 2,
-                    "recent_titles": 0,
-                    "avg_recent_rating": None,
-                    "avg_metacritic": None,
-                }
             ]
         )
         top_titles = pd.DataFrame(
             [
                 {
-                    "title_group": "upcoming_most_anticipated",
+                    "title_group": "upcoming_next_90_most_added",
                     "rank_in_group": 1,
                     "game_name": "Skyline Echo",
                     "released": "2026-05-14",
+                    "days_from_snapshot": 36,
                     "primary_platform": "PC",
                     "genre_names": "Adventure",
                     "rating": 4.2,
-                    "metacritic": None,
+                    "metacritic": 81,
                     "added": 980,
                 },
                 {
-                    "title_group": "recent_highest_rated",
+                    "title_group": "recent_last_90_highest_rated",
                     "rank_in_group": 1,
                     "game_name": "Orbit Breaker",
                     "released": "2026-03-02",
+                    "days_from_snapshot": -37,
                     "primary_platform": "PC",
                     "genre_names": "Action, RPG",
                     "rating": 4.7,
@@ -123,14 +129,62 @@ class ReportingTests(unittest.TestCase):
         digest = render_release_digest(
             snapshot_date=date(2026, 4, 8),
             release_calendar=release_calendar,
-            monthly_trends=monthly_trends,
             top_titles=top_titles,
         )
 
         self.assertIn("# RAWG Game Release Digest", digest)
-        self.assertIn("Top Upcoming Releases", digest)
+        self.assertIn("## Coverage", digest)
+        self.assertIn("Recent release window", digest)
+        self.assertIn("Upcoming Releases in Next 90 Days", digest)
         self.assertIn("Skyline Echo", digest)
         self.assertIn("Orbit Breaker", digest)
+        self.assertIn("RAWG added", digest)
+        self.assertIn("Release Window Summary", digest)
+        self.assertNotIn("Monthly Release Trends", digest)
+
+    def test_render_release_digest_handles_windows_with_only_null_metacritic(self) -> None:
+        release_calendar = pd.DataFrame(
+            [
+                {
+                    "window_start_date": pd.Timestamp("2025-04-08"),
+                    "window_end_date": pd.Timestamp("2027-04-08"),
+                    "release_bucket": "upcoming",
+                    "game_name": "Skyline Echo",
+                    "released": pd.Timestamp("2026-05-14"),
+                    "days_from_snapshot": 36,
+                    "rating": 4.2,
+                    "metacritic": pd.NA,
+                    "primary_platform": "PC",
+                    "genre_names": "Adventure",
+                    "added": 980,
+                }
+            ]
+        )
+        top_titles = pd.DataFrame(
+            [
+                {
+                    "title_group": "upcoming_next_90_most_added",
+                    "rank_in_group": 1,
+                    "game_name": "Skyline Echo",
+                    "released": "2026-05-14",
+                    "days_from_snapshot": 36,
+                    "primary_platform": "PC",
+                    "genre_names": "Adventure",
+                    "rating": 4.2,
+                    "metacritic": pd.NA,
+                    "added": 980,
+                }
+            ]
+        )
+
+        digest = render_release_digest(
+            snapshot_date=date(2026, 4, 8),
+            release_calendar=release_calendar,
+            top_titles=top_titles,
+        )
+
+        self.assertIn("Next 90 days", digest)
+        self.assertIn("n/a", digest)
 
 
 if __name__ == "__main__":
