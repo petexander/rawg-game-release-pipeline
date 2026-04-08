@@ -13,11 +13,11 @@ platforms as (
 select
     release_cohorts.release_month,
     coalesce(platforms.primary_platform, 'Unknown') as primary_platform,
-    count(*) as total_titles,
-    sum(case when release_cohorts.release_bucket = 'upcoming' then 1 else 0 end) as upcoming_titles,
-    sum(case when release_cohorts.release_bucket = 'recent' then 1 else 0 end) as recent_titles,
+    cast(count(*) as integer) as total_titles,
+    cast(sum(case when release_cohorts.release_bucket = 'upcoming' then 1 else 0 end) as integer) as upcoming_titles,
+    cast(sum(case when release_cohorts.release_bucket = 'recent' then 1 else 0 end) as integer) as recent_titles,
     round(avg(case when release_cohorts.release_bucket = 'recent' and release_cohorts.rating > 0 then release_cohorts.rating end), 2) as avg_recent_rating,
-    round(avg(release_cohorts.metacritic), 2) as avg_metacritic
+    round(avg(case when release_cohorts.release_bucket = 'recent' and release_cohorts.metacritic is not null then release_cohorts.metacritic end), 2) as avg_metacritic
 from release_cohorts
 left join platforms
     on release_cohorts.snapshot_date = platforms.snapshot_date
