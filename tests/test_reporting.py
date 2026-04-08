@@ -31,6 +31,36 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("980", rendered)
         self.assertIn("Paper Citadel", rendered)
 
+    def test_render_markdown_table_formats_integer_like_floats_as_integers(self) -> None:
+        dataframe = pd.DataFrame(
+            {
+                "month": ["2026-05-01"],
+                "total_titles": [2.0],
+                "upcoming_titles": [2.0],
+                "avg_metacritic": [81.5],
+            }
+        )
+
+        rendered = _render_markdown_table(dataframe)
+
+        self.assertIn("2", rendered)
+        self.assertNotIn("2.0", rendered)
+        self.assertIn("81.5", rendered)
+
+    def test_render_markdown_table_formats_date_like_values_without_midnight_timestamp(self) -> None:
+        dataframe = pd.DataFrame(
+            {
+                "release_date": [pd.Timestamp("2026-05-14 00:00:00")],
+                "release_month": [pd.Timestamp("2026-05-01 00:00:00")],
+            }
+        )
+
+        rendered = _render_markdown_table(dataframe)
+
+        self.assertIn("2026-05-14", rendered)
+        self.assertIn("2026-05-01", rendered)
+        self.assertNotIn("T00:00:00", rendered)
+
     def test_render_release_digest_contains_expected_sections(self) -> None:
         release_calendar = pd.DataFrame(
             [

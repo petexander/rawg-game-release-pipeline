@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
+import math
 from pathlib import Path
 
 import duckdb
@@ -27,7 +28,7 @@ def _render_markdown_table(dataframe: pd.DataFrame) -> str:
 
     headers = list(dataframe.columns)
     rows = [
-        ["" if pd.isna(value) else str(value) for value in row]
+        [_format_table_value(value) for value in row]
         for row in dataframe.itertuples(index=False, name=None)
     ]
     widths = [len(header) for header in headers]
@@ -52,6 +53,30 @@ def _format_metric(value: float | int | None, digits: int = 1) -> str:
     if isinstance(value, int):
         return f"{value:,}"
     return f"{value:.{digits}f}"
+
+
+def _format_table_value(value: object) -> str:
+    if pd.isna(value):
+        return "n/a"
+    if isinstance(value, pd.Timestamp):
+        if value.hour == 0 and value.minute == 0 and value.second == 0 and value.microsecond == 0:
+            return value.date().isoformat()
+        return value.isoformat(sep=" ", timespec="seconds")
+    if isinstance(value, datetime):
+        if value.hour == 0 and value.minute == 0 and value.second == 0 and value.microsecond == 0:
+            return value.date().isoformat()
+        return value.isoformat(sep=" ", timespec="seconds")
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, int):
+        return f"{value:,}"
+    if isinstance(value, float):
+        if math.isfinite(value) and value.is_integer():
+            return f"{int(value):,}"
+        return f"{value:.2f}".rstrip("0").rstrip(".")
+    return str(value)
 
 
 def render_release_digest(
