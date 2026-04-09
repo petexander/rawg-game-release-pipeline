@@ -1,8 +1,8 @@
 # RAWG Game Release Pipeline
 
-Public-facing data engineering portfolio project that ingests game release data from the RAWG API, stores a point-in-time snapshot in DuckDB, models it with dbt, and publishes a readable release briefing as Markdown and CSV.
+Example end-to-end data engineering project that ingests game release data from the RAWG API, stores a point-in-time snapshot in DuckDB, models it with dbt, and publishes a readable release briefing as Markdown and CSV.
 
-The repo is optimized for a fast local demo. Airflow is included as an optional orchestration showcase, not as the default way to run the project.
+The repo is optimised for a fast local demo. Airflow is included as an optional orchestration showcase, not as the default way to run the project.
 
 ## What This Demonstrates
 
@@ -26,7 +26,7 @@ Key runtime areas:
 
 ## Quickstart
 
-Run the project locally without an API key:
+Run the project locally without a RAWG API key:
 
 ```bash
 uv sync
@@ -43,7 +43,7 @@ The generated digest is a near-term release briefing. It explains:
 - what snapshot date the report uses
 - which recent and upcoming windows the dataset covers
 - which titles are most relevant in the next 90 days
-- how platform and genre mix look in the near-term release slate
+- how platform and genre mix look in the near-term release window
 
 ## Live RAWG Run
 
@@ -54,12 +54,6 @@ cp .env.example .env
 # add your RAWG_API_KEY
 uv run --env-file .env game-release-pipeline run
 ```
-
-## Why The Repo Is Shaped This Way
-
-- Fixture-first onboarding lowers friction for reviewers and hiring managers.
-- The data model keeps a one-year recent and one-year upcoming window, but the report focuses on the last 90 days and next 90 days because that is easier to interpret quickly.
-- Airflow stays optional so the main path remains lightweight while still demonstrating orchestration awareness.
 
 ## Testing
 

@@ -19,7 +19,7 @@ This repository is designed to show an end-to-end data engineering workflow in a
 ## Modeling Decisions
 
 - Nested RAWG arrays stay raw as JSON in the ingestion table and are flattened in dbt models.
-- The mart layer centers on a release calendar table with one row per title in the latest snapshot.
+- The marts layer centers on a release calendar table with one row per title in the latest snapshot.
 - A separate ranked-titles mart supports the report’s curated near-term highlight sections.
 
 ## What I Would Extend Next

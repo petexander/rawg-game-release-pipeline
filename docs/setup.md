@@ -19,8 +19,8 @@ uv run game-release-pipeline run --fixtures-dir tests/fixtures/rawg_pages --as-o
 That command will:
 
 - load a point-in-time snapshot into DuckDB
-- run dbt base, intermediate, and mart models
-- run dbt tests plus explicit mart checks
+- run dbt base, intermediate, and marts models
+- run dbt tests plus explicit marts checks
 - export Markdown and CSV reports to `output/reports/`
 
 ## Live API Run
@@ -71,7 +71,7 @@ uv run dbt test --select marts_games__release_calendar marts_games__top_titles
 
 ## Optional Airflow
 
-Airflow is present as a secondary showcase path. It is not required for the main local run.
+Airflow is present as a secondary path. It is not required for the main local run.
 
 Install the optional dependency set:
 
@@ -86,10 +86,25 @@ export AIRFLOW_HOME=$(pwd)/orchestration/airflow
 export PYTHONPATH=$(pwd)/orchestration/airflow
 ```
 
+Airflow tasks in this repo will load missing pipeline settings from the project `.env` file if it exists, so keep your `RAWG_API_KEY` and `DUCKDB_PATH` there for local standalone runs.
+
 Start Airflow:
 
 ```bash
 uv run airflow standalone
+```
+
+Open the Airflow UI at `http://localhost:8080`.
+
+Default standalone login for this local setup:
+
+- username: `admin`
+- password: stored in `orchestration/airflow/standalone_admin_password.txt`
+
+You can print the current password with:
+
+```bash
+cat orchestration/airflow/standalone_admin_password.txt
 ```
 
 Useful Airflow commands:
@@ -99,6 +114,38 @@ uv run airflow dags list
 uv run airflow dags show rawg_game_release_pipeline
 uv run airflow dags trigger rawg_game_release_pipeline
 uv run airflow tasks test rawg_game_release_pipeline run_base 2026-04-08
+```
+
+Recommended local workflow:
+
+- Use `uv run airflow dags test rawg_game_release_pipeline 2026-04-08` to run the full DAG once from the command line. This is the fastest way to debug a full pipeline run without relying on the UI scheduler state.
+- Use `uv run airflow tasks test rawg_game_release_pipeline ingest_rawg_snapshot_task 2026-04-08` to debug a single task in the foreground.
+- If you are using the UI, pause the DAG first with `uv run airflow dags pause rawg_game_release_pipeline` so Airflow does not create extra scheduled runs while you are manually testing.
+
+Reset Airflow local state:
+
+- Stop `uv run airflow standalone`. If `Ctrl+C` does not return you to the shell cleanly, press it again or close that terminal session.
+- Remove local Airflow state when you want to start completely fresh:
+
+```bash
+rm -f orchestration/airflow/airflow.cfg
+rm -f orchestration/airflow/airflow.db
+rm -f orchestration/airflow/webserver_config.py
+rm -f orchestration/airflow/standalone_admin_password.txt
+rm -rf orchestration/airflow/logs
+```
+
+- Then restart Airflow and regenerate clean local metadata:
+
+```bash
+export AIRFLOW_HOME=$(pwd)/orchestration/airflow
+export PYTHONPATH=$(pwd)/orchestration/airflow
+export AIRFLOW__CORE__DAGS_FOLDER=$(pwd)/orchestration/airflow/dags
+export AIRFLOW__CORE__PLUGINS_FOLDER=$(pwd)/orchestration/airflow/plugins
+export AIRFLOW__LOGGING__BASE_LOG_FOLDER=$(pwd)/orchestration/airflow/logs
+export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////$(pwd)/orchestration/airflow/airflow.db
+export AIRFLOW__CORE__LOAD_EXAMPLES=False
+uv run airflow standalone
 ```
 
 ## Testing
