@@ -1,0 +1,218 @@
+version: 2
+
+models:
+  - name: base_rawg__games_snapshot
+    description: "Latest RAWG snapshot normalized to one row per game from the most recent ingestion run."
+    columns:
+      - name: snapshot_date
+        description: "Logical snapshot date for the latest RAWG pull loaded into analytics."
+        tests:
+          - not_null
+      - name: window_start_date
+        description: "Start of the release-date window requested from the RAWG API for this snapshot."
+        tests:
+          - not_null
+      - name: window_end_date
+        description: "End of the release-date window requested from the RAWG API for this snapshot."
+        tests:
+          - not_null
+      - name: run_id
+        description: "Ingestion run identifier that produced the latest game snapshot row."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('base_rawg__ingestion_runs')
+                field: run_id
+      - name: segment
+        description: "Release segment fetched from RAWG, used to split recent and upcoming windows during ingestion."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['recent', 'upcoming']
+      - name: page_number
+        description: "RAWG API results page number where the game record was retrieved."
+        tests:
+          - not_null
+      - name: game_id
+        description: "RAWG game identifier for the latest snapshot."
+        tests:
+          - not_null
+          - unique
+      - name: slug
+        description: "RAWG slug for the game, used to build the public RAWG game URL."
+      - name: game_name
+        description: "Display title returned by RAWG for the game."
+        tests:
+          - not_null
+      - name: source_url
+        description: "Public RAWG game page URL derived from the slug when a slug is available."
+      - name: released
+        description: "Game release date reported by RAWG, or null when the title is still marked TBA."
+      - name: is_tba
+        description: "Flag showing whether RAWG marks the title as to-be-announced."
+        tests:
+          - not_null
+      - name: updated_at
+        description: "Timestamp from RAWG indicating when the game record was last updated upstream."
+      - name: rating
+        description: "Average RAWG user rating for the title at snapshot time."
+      - name: ratings_count
+        description: "Number of ratings contributing to the RAWG average rating."
+      - name: metacritic
+        description: "Metacritic score exposed by RAWG for the game."
+      - name: added
+        description: "Number of RAWG users who have added the title to one of their lists."
+      - name: platforms_json
+        description: "Raw JSON array of platform objects from RAWG, defaulted to an empty array when absent."
+        tests:
+          - not_null
+      - name: genres_json
+        description: "Raw JSON array of genre objects from RAWG, defaulted to an empty array when absent."
+        tests:
+          - not_null
+      - name: stores_json
+        description: "Raw JSON array of store objects from RAWG, defaulted to an empty array when absent."
+        tests:
+          - not_null
+      - name: esrb_rating_json
+        description: "Raw JSON payload for the ESRB rating object returned by RAWG."
+      - name: esrb_rating_name
+        description: "Human-readable ESRB rating name extracted from the RAWG ESRB payload."
+      - name: background_image_url
+        description: "RAWG background image URL used for downstream reporting or presentation."
+
+  - name: base_rawg__game_platforms
+    description: "Flattened game-platform bridge derived from the RAWG platforms JSON array."
+    columns:
+      - name: snapshot_date
+        description: "Logical snapshot date inherited from the parent game record."
+        tests:
+          - not_null
+      - name: game_id
+        description: "RAWG game identifier for the platform association."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('base_rawg__games_snapshot')
+                field: game_id
+      - name: platform_id
+        description: "RAWG platform identifier extracted from the nested platform object."
+        tests:
+          - not_null
+      - name: platform_slug
+        description: "RAWG platform slug for the associated platform."
+        tests:
+          - not_null
+      - name: platform_name
+        description: "Display name of the platform associated with the game."
+        tests:
+          - not_null
+      - name: platform_released_at
+        description: "Platform-specific release date supplied by RAWG when available."
+
+  - name: base_rawg__game_genres
+    description: "Flattened game-genre bridge derived from the RAWG genres JSON array."
+    columns:
+      - name: snapshot_date
+        description: "Logical snapshot date inherited from the parent game record."
+        tests:
+          - not_null
+      - name: game_id
+        description: "RAWG game identifier for the genre association."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('base_rawg__games_snapshot')
+                field: game_id
+      - name: genre_id
+        description: "RAWG genre identifier extracted from the nested genre object."
+        tests:
+          - not_null
+      - name: genre_slug
+        description: "RAWG genre slug for the associated genre."
+        tests:
+          - not_null
+      - name: genre_name
+        description: "Display name of the genre associated with the game."
+        tests:
+          - not_null
+
+  - name: base_rawg__game_stores
+    description: "Flattened game-store bridge derived from the RAWG stores JSON array."
+    columns:
+      - name: snapshot_date
+        description: "Logical snapshot date inherited from the parent game record."
+        tests:
+          - not_null
+      - name: game_id
+        description: "RAWG game identifier for the store association."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('base_rawg__games_snapshot')
+                field: game_id
+      - name: store_id
+        description: "RAWG store identifier extracted from the nested store object."
+        tests:
+          - not_null
+      - name: store_slug
+        description: "RAWG store slug for the associated storefront."
+        tests:
+          - not_null
+      - name: store_name
+        description: "Display name of the storefront associated with the game."
+        tests:
+          - not_null
+
+  - name: base_rawg__ingestion_runs
+    description: "Ingestion run metadata captured by the Python loader, one row per pipeline attempt."
+    columns:
+      - name: run_id
+        description: "Unique ingestion run identifier generated by the Python ingestion layer."
+        tests:
+          - not_null
+          - unique
+      - name: snapshot_date
+        description: "Logical snapshot date assigned to the ingestion run."
+        tests:
+          - not_null
+      - name: started_at
+        description: "Timestamp when the ingestion attempt started writing pipeline metadata."
+        tests:
+          - not_null
+      - name: completed_at
+        description: "Timestamp when the ingestion attempt finished, or null while a run is still in progress."
+      - name: status
+        description: "Final or in-flight ingestion status recorded by the loader."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['running', 'succeeded', 'failed']
+      - name: window_start_date
+        description: "Start of the release-date window requested for the ingestion run."
+        tests:
+          - not_null
+      - name: window_end_date
+        description: "End of the release-date window requested for the ingestion run."
+        tests:
+          - not_null
+      - name: pages_fetched
+        description: "Number of RAWG API result pages fetched during the ingestion run."
+        tests:
+          - not_null
+      - name: segments_fetched
+        description: "Number of release segments fetched during the ingestion run."
+        tests:
+          - not_null
+      - name: rows_loaded
+        description: "Number of game snapshot rows written to the raw snapshot table for the run."
+        tests:
+          - not_null
+      - name: error_message
+        description: "Captured failure message when an ingestion attempt ends in an error."

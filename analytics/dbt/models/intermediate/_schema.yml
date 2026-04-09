@@ -1,0 +1,110 @@
+version: 2
+
+models:
+  - name: int_games__release_cohorts
+    description: "Per-game release cohort model that classifies each latest-snapshot title into reporting-friendly release buckets."
+    columns:
+      - name: snapshot_date
+        description: "Logical snapshot date for the latest RAWG pull used to classify the game."
+        tests:
+          - not_null
+      - name: window_start_date
+        description: "Start of the ingestion release window that supplied the game row."
+        tests:
+          - not_null
+      - name: window_end_date
+        description: "End of the ingestion release window that supplied the game row."
+        tests:
+          - not_null
+      - name: game_id
+        description: "RAWG game identifier carried forward for downstream joins and marts."
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('base_rawg__games_snapshot')
+                field: game_id
+      - name: slug
+        description: "RAWG slug for the game, retained for lineage and downstream linking."
+      - name: game_name
+        description: "Display title for the game."
+        tests:
+          - not_null
+      - name: source_url
+        description: "Public RAWG game page URL derived from the source slug."
+      - name: released
+        description: "Reported game release date, or null when the title is still TBA."
+      - name: release_month
+        description: "Month bucket for the release date, truncated to the first day of the month."
+      - name: is_tba
+        description: "Flag showing whether RAWG marks the title as to-be-announced."
+        tests:
+          - not_null
+      - name: release_bucket
+        description: "Reporting bucket that classifies the game as recent, upcoming, or TBA."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['recent', 'upcoming', 'tba']
+      - name: days_from_snapshot
+        description: "Signed day difference between snapshot date and release date, or null for TBA titles."
+      - name: rating
+        description: "Average RAWG user rating for the game at snapshot time."
+      - name: ratings_count
+        description: "Number of RAWG ratings contributing to the average rating."
+      - name: metacritic
+        description: "Metacritic score exposed by RAWG for the game."
+      - name: added
+        description: "Count of RAWG users who have added the title to one of their lists."
+      - name: esrb_rating_name
+        description: "Human-readable ESRB rating associated with the game when present."
+      - name: background_image_url
+        description: "RAWG background image URL retained for downstream presentation use."
+
+  - name: int_games__platform_summary
+    description: "Per-game platform rollup that selects a primary platform and renders a de-duplicated platform list."
+    columns:
+      - name: snapshot_date
+        description: "Logical snapshot date for the platform rollup."
+        tests:
+          - not_null
+      - name: game_id
+        description: "RAWG game identifier for the summarized platform record."
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('base_rawg__games_snapshot')
+                field: game_id
+      - name: primary_platform
+        description: "Alphabetically first platform selected as the representative platform for reporting."
+        tests:
+          - not_null
+      - name: platform_names
+        description: "Comma-separated list of distinct platforms associated with the game."
+        tests:
+          - not_null
+
+  - name: int_games__genre_summary
+    description: "Per-game genre rollup that renders a de-duplicated genre list for final reporting."
+    columns:
+      - name: snapshot_date
+        description: "Logical snapshot date for the genre rollup."
+        tests:
+          - not_null
+      - name: game_id
+        description: "RAWG game identifier for the summarized genre record."
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('base_rawg__games_snapshot')
+                field: game_id
+      - name: genre_names
+        description: "Comma-separated list of distinct genres associated with the game."
+        tests:
+          - not_null

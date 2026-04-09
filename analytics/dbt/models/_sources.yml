@@ -1,0 +1,117 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Raw ingestion tables loaded from the RAWG API into DuckDB before dbt normalization."
+    tables:
+      - name: rawg_games_snapshot
+        description: "Append-only RAWG snapshot table with one row per ingested game per snapshot date."
+        columns:
+          - name: snapshot_date
+            description: "Logical run date assigned to the snapshot batch."
+            tests:
+              - not_null
+          - name: window_start_date
+            description: "Start of the release-date window requested from RAWG for the snapshot."
+            tests:
+              - not_null
+          - name: window_end_date
+            description: "End of the release-date window requested from RAWG for the snapshot."
+            tests:
+              - not_null
+          - name: run_id
+            description: "Ingestion run identifier that loaded the raw game record."
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw', 'ingestion_runs')
+                    field: run_id
+          - name: segment
+            description: "Release segment requested from RAWG, used to separate recent and upcoming fetches."
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['recent', 'upcoming']
+          - name: page_number
+            description: "RAWG API result page number where the record was fetched."
+            tests:
+              - not_null
+          - name: game_id
+            description: "RAWG game identifier."
+            tests:
+              - not_null
+          - name: slug
+            description: "RAWG slug for the game."
+          - name: name
+            description: "Display title returned by RAWG."
+            tests:
+              - not_null
+          - name: released
+            description: "Release date reported by RAWG, or null when the game is TBA."
+          - name: tba
+            description: "Boolean flag indicating whether RAWG marks the title as to-be-announced."
+          - name: updated_at
+            description: "Last-updated timestamp string returned by RAWG for the game record."
+          - name: rating
+            description: "Average RAWG user rating at ingestion time."
+          - name: ratings_count
+            description: "Number of RAWG user ratings contributing to the average rating."
+          - name: metacritic
+            description: "Metacritic score exposed by RAWG for the game."
+          - name: added
+            description: "Count of RAWG users who have added the game to one of their lists."
+          - name: platforms_json
+            description: "Nested platform array stored as JSON text."
+          - name: genres_json
+            description: "Nested genre array stored as JSON text."
+          - name: stores_json
+            description: "Nested storefront array stored as JSON text."
+          - name: esrb_rating_json
+            description: "Nested ESRB rating object stored as JSON text."
+          - name: background_image_url
+            description: "RAWG background image URL captured at ingestion time."
+
+      - name: ingestion_runs
+        description: "One row per ingestion attempt, including status, date window, and load counts."
+        columns:
+          - name: run_id
+            description: "Unique run identifier from the Python ingestion layer."
+            tests:
+              - not_null
+              - unique
+          - name: snapshot_date
+            description: "Logical snapshot date assigned to the ingestion attempt."
+            tests:
+              - not_null
+          - name: started_at
+            description: "Timestamp when the ingestion attempt started."
+            tests:
+              - not_null
+          - name: completed_at
+            description: "Timestamp when the ingestion attempt completed, or null while the run is still active."
+          - name: status
+            description: "Current or final ingestion status."
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['running', 'succeeded', 'failed']
+          - name: window_start_date
+            description: "Start of the release-date window requested for the ingestion run."
+            tests:
+              - not_null
+          - name: window_end_date
+            description: "End of the release-date window requested for the ingestion run."
+            tests:
+              - not_null
+          - name: pages_fetched
+            description: "Number of RAWG API result pages fetched during the run."
+          - name: segments_fetched
+            description: "Number of release segments fetched during the run."
+          - name: rows_loaded
+            description: "Number of raw snapshot rows loaded during the run."
+          - name: error_message
+            description: "Captured failure message when the run does not succeed."

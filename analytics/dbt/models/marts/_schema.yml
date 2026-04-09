@@ -1,0 +1,117 @@
+version: 2
+
+models:
+  - name: marts_games__release_calendar
+    description: "Stakeholder-facing release calendar mart with one row per game from the latest snapshot."
+    columns:
+      - name: snapshot_date
+        description: "Logical snapshot date for the release calendar extract."
+        tests:
+          - not_null
+      - name: window_start_date
+        description: "Start of the release-date window requested for the underlying ingestion run."
+        tests:
+          - not_null
+      - name: window_end_date
+        description: "End of the release-date window requested for the underlying ingestion run."
+        tests:
+          - not_null
+      - name: game_id
+        description: "RAWG game identifier for the release calendar row."
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('int_games__release_cohorts')
+                field: game_id
+      - name: slug
+        description: "RAWG slug for the title, retained for traceability and linking."
+      - name: game_name
+        description: "Display title shown in release calendar outputs."
+        tests:
+          - not_null
+      - name: source_url
+        description: "Public RAWG game page URL used in downstream reports."
+      - name: released
+        description: "Reported release date for the title, or null when the title remains TBA."
+      - name: release_month
+        description: "Month bucket for the release date, truncated to the first day of the month."
+      - name: release_bucket
+        description: "Classification of the game as recent, upcoming, or TBA for reporting slices."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['recent', 'upcoming', 'tba']
+      - name: days_from_snapshot
+        description: "Signed day difference between snapshot date and release date, or null for TBA titles."
+      - name: primary_platform
+        description: "Primary platform used for rollups, defaulting to Unknown when no platform summary exists."
+        tests:
+          - not_null
+      - name: platform_names
+        description: "Comma-separated list of associated platforms when platform detail is available."
+      - name: genre_names
+        description: "Comma-separated list of associated genres when genre detail is available."
+      - name: rating
+        description: "Average RAWG user rating shown alongside the title."
+      - name: ratings_count
+        description: "Number of RAWG ratings supporting the average rating."
+      - name: metacritic
+        description: "Metacritic score exposed by RAWG for the title."
+      - name: added
+        description: "Count of RAWG users who have added the title to one of their lists."
+      - name: esrb_rating_name
+        description: "Human-readable ESRB rating for the title when RAWG provides one."
+      - name: background_image_url
+        description: "RAWG background image URL carried through for presentation-oriented outputs."
+
+  - name: marts_games__top_titles
+    description: "Curated top-title ranking slices derived from the release calendar for near-term reporting sections."
+    columns:
+      - name: title_group
+        description: "Named ranking slice that identifies the report section the title belongs to."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['recent_last_90_highest_rated', 'upcoming_next_90_most_added']
+      - name: rank_in_group
+        description: "1-based rank of the title within its named ranking slice."
+        tests:
+          - not_null
+      - name: snapshot_date
+        description: "Logical snapshot date inherited from the release calendar."
+        tests:
+          - not_null
+      - name: game_id
+        description: "RAWG game identifier for the ranked title."
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('marts_games__release_calendar')
+                field: game_id
+      - name: game_name
+        description: "Display title included in the ranking output."
+        tests:
+          - not_null
+      - name: released
+        description: "Release date used to determine whether the title belongs in the recent or upcoming slice."
+      - name: days_from_snapshot
+        description: "Signed day difference between snapshot date and release date for the ranked title."
+      - name: primary_platform
+        description: "Primary platform surfaced alongside the ranked title."
+        tests:
+          - not_null
+      - name: genre_names
+        description: "Comma-separated genre summary displayed with the ranked title."
+      - name: rating
+        description: "Average RAWG user rating used in the recent-title ranking logic."
+      - name: metacritic
+        description: "Metacritic score used as a tie-breaker in ranking logic."
+      - name: added
+        description: "RAWG add-count used in the upcoming-title ranking logic."
+      - name: source_url
+        description: "Public RAWG game page URL for the ranked title."
