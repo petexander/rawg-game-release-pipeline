@@ -8,6 +8,25 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_ENV_FILE = PROJECT_ROOT / ".env"
+
+
+def _load_project_env_defaults(env_file: Path | None = None) -> None:
+    """Load missing environment variables from the project .env file."""
+
+    if env_file is None:
+        env_file = DEFAULT_ENV_FILE
+
+    if not env_file.exists():
+        return
+
+    for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        name, value = line.split("=", 1)
+        os.environ.setdefault(name.strip(), value.strip())
 
 
 def _env_int(name: str, default: int) -> int:
@@ -42,6 +61,8 @@ class PipelineSettings:
 
     @classmethod
     def from_env(cls, require_api_key: bool = False) -> "PipelineSettings":
+        _load_project_env_defaults()
+
         rawg_api_key = os.getenv("RAWG_API_KEY")
         if require_api_key and not rawg_api_key:
             raise ValueError(
