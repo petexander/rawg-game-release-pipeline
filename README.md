@@ -55,11 +55,37 @@ cp .env.example .env
 uv run --env-file .env game-release-pipeline run
 ```
 
+## Inspecting DuckDB
+
+To open the local DuckDB UI against the configured warehouse file:
+
+```bash
+uv run game-release-pipeline duckdb-ui
+```
+
+The command uses the same `DUCKDB_PATH` resolution as the rest of the project, so by default it opens [`game_release.duckdb`](game_release.duckdb). If the UI fails because the database is locked, close other write-mode processes first such as an active dbt run, Airflow task, or another DuckDB UI session.
+
+For quick terminal inspection instead of the browser UI:
+
+```bash
+uv run duckdb -readonly game_release.duckdb
+```
+
 ## Testing
+
+Run the full local test suite with Python's built-in `unittest` discovery:
 
 ```bash
 uv run python -m unittest discover -s tests -v
 ```
+
+That command:
+
+- uses `uv run` so the tests execute inside the project's managed environment
+- asks `unittest` to discover test files under [`tests/`](tests)
+- runs them in verbose mode so you can see each test case name as it executes
+
+In this repo, the suite covers the CLI, settings loading, RAWG fixture ingestion, report generation, and a small end-to-end pipeline smoke test. The tests use local fixtures and temporary DuckDB files, so they do not require a live RAWG API key.
 
 ## Further Reading
 

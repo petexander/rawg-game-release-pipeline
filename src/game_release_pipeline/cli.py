@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import shutil
+import subprocess
 from typing import Sequence
 
 from .orchestration import ingest_rawg_snapshot, run_full_pipeline
@@ -34,6 +36,11 @@ def build_parser() -> argparse.ArgumentParser:
             help="Optional fixture directory for deterministic local runs.",
         )
 
+    subparsers.add_parser(
+        "duckdb-ui",
+        help="Open the local DuckDB UI against the configured database file.",
+    )
+
     return parser
 
 
@@ -41,10 +48,29 @@ def _resolve_fixtures_dir(fixtures_dir: str | None) -> Path | None:
     return Path(fixtures_dir) if fixtures_dir else None
 
 
+def _open_duckdb_ui(settings: PipelineSettings) -> int:
+    """Launch the DuckDB UI for the configured database."""
+
+    duckdb_binary = shutil.which("duckdb")
+    if duckdb_binary is None:
+        raise RuntimeError(
+            "DuckDB CLI executable not found on PATH. "
+            "Run this command through `uv run` so the project's DuckDB dependency is available."
+        )
+
+    subprocess.run([duckdb_binary, "-ui", str(settings.duckdb_path)], check=True)
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI with an optional argv override."""
 
     args = build_parser().parse_args(argv)
+
+    if args.command == "duckdb-ui":
+        settings = PipelineSettings.from_env(require_api_key=False)
+        return _open_duckdb_ui(settings)
+
     fixtures_dir = _resolve_fixtures_dir(args.fixtures_dir)
     settings = PipelineSettings.from_env(require_api_key=fixtures_dir is None)
     snapshot_date = parse_as_of_date(args.as_of_date)

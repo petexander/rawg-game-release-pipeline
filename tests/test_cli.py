@@ -24,6 +24,11 @@ class CliTests(unittest.TestCase):
         self.assertEqual(args.fixtures_dir, "tests/fixtures/rawg_pages")
         self.assertEqual(args.as_of_date, "2026-04-08")
 
+    def test_build_parser_supports_duckdb_ui_subcommand(self) -> None:
+        args = build_parser().parse_args(["duckdb-ui"])
+
+        self.assertEqual(args.command, "duckdb-ui")
+
     @patch("game_release_pipeline.cli.run_full_pipeline")
     @patch("game_release_pipeline.cli.PipelineSettings.from_env")
     def test_main_run_uses_fixture_mode_without_api_key(
@@ -76,3 +81,24 @@ class CliTests(unittest.TestCase):
         mock_from_env.assert_called_once_with(require_api_key=True)
         mock_ingest_rawg_snapshot.assert_called_once()
         mock_print.assert_called_once()
+
+    @patch("game_release_pipeline.cli.subprocess.run")
+    @patch("game_release_pipeline.cli.shutil.which")
+    @patch("game_release_pipeline.cli.PipelineSettings.from_env")
+    def test_main_duckdb_ui_opens_configured_database(
+        self,
+        mock_from_env,
+        mock_which,
+        mock_subprocess_run,
+    ) -> None:
+        mock_from_env.return_value = SimpleNamespace(duckdb_path=Path("/tmp/game_release.duckdb"))
+        mock_which.return_value = "/usr/local/bin/duckdb"
+
+        exit_code = main(["duckdb-ui"])
+
+        self.assertEqual(exit_code, 0)
+        mock_from_env.assert_called_once_with(require_api_key=False)
+        mock_subprocess_run.assert_called_once_with(
+            ["/usr/local/bin/duckdb", "-ui", "/tmp/game_release.duckdb"],
+            check=True,
+        )
