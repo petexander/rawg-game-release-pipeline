@@ -2,7 +2,7 @@
 
 Example end-to-end data engineering project that ingests game release data from the RAWG API, stores a point-in-time snapshot in DuckDB, models it with dbt, and publishes a readable release briefing as Markdown and CSV.
 
-The repo is optimised for a fast local demo. Airflow is included as an optional orchestration showcase, not as the default way to run the project.
+The repo is optimised for a fast local demo. Airflow is included as an optional orchestration showcase, not the default way to run the project.
 
 ## What This Demonstrates
 
@@ -15,14 +15,40 @@ The repo is optimised for a fast local demo. Airflow is included as an optional 
 
 ## Architecture
 
-`RAWG API -> Python ingestion -> DuckDB raw schema -> dbt models -> Markdown + CSV report artifacts`
+```mermaid
+flowchart TD
+    CLI["CLI<br/>game-release-pipeline run"]
+    AF["Airflow DAG<br/>(optional)"]
+
+    subgraph Sources
+        A[RAWG API]
+        B["Recorded fixtures<br/>tests/fixtures/rawg_pages/"]
+    end
+
+    ING["Ingestion<br/>rawg.py + storage.py"]
+    RAW["DuckDB raw schema<br/>rawg_games_snapshot<br/>ingestion_runs"]
+    DBT["DuckDB dbt models<br/>base &rarr; intermediate &rarr; marts"]
+    REP["Reporting<br/>reporting.py"]
+    OUT["output/reports/<br/>game_release_calendar_*.csv<br/>game_release_digest_*.md"]
+
+    CLI -. triggers .-> ING
+    AF -. triggers .-> ING
+    A --> ING
+    B --> ING
+    ING --> RAW
+    RAW --> DBT
+    DBT --> REP
+    REP --> OUT
+```
+
+The CLI and Airflow DAG are alternative entry points that run the same Python package ([src/game_release_pipeline/](src/game_release_pipeline/)) to drive ingestion, dbt, and reporting in sequence. The warehouse is a single DuckDB file at `game_release.duckdb` by default, holding both the raw schema and the dbt-built views and tables.
 
 Key runtime areas:
 
-- `src/game_release_pipeline/`: package code for ingestion, orchestration, dbt execution, and reporting
-- `analytics/dbt/`: base, intermediate, and mart models
-- `tests/fixtures/rawg_pages/`: deterministic API fixtures used for smoke tests and no-key demo runs
-- `orchestration/airflow/`: optional Airflow DAG and Airflow-only runtime helpers
+- [src/game_release_pipeline/](src/game_release_pipeline/): package code for ingestion, orchestration, dbt execution, and reporting
+- [analytics/dbt/](analytics/dbt/): base, intermediate, and mart models
+- [tests/fixtures/rawg_pages/](tests/fixtures/rawg_pages/): deterministic API fixtures used for smoke tests and no-key demo runs
+- [orchestration/airflow/](orchestration/airflow/): optional Airflow DAG and Airflow-only runtime helpers
 
 ## Quickstart
 
@@ -73,19 +99,11 @@ uv run duckdb -readonly game_release.duckdb
 
 ## Testing
 
-Run the full local test suite with Python's built-in `unittest` discovery:
-
 ```bash
 uv run python -m unittest discover -s tests -v
 ```
 
-That command:
-
-- uses `uv run` so the tests execute inside the project's managed environment
-- asks `unittest` to discover test files under [`tests/`](tests)
-- runs them in verbose mode so you can see each test case name as it executes
-
-In this repo, the suite covers the CLI, settings loading, RAWG fixture ingestion, report generation, and a small end-to-end pipeline smoke test. The tests use local fixtures and temporary DuckDB files, so they do not require a live RAWG API key.
+The suite covers the CLI, settings loading, RAWG fixture ingestion, report generation, and an end-to-end pipeline smoke test. It uses local fixtures and temporary DuckDB files, so no live RAWG API key is required. See the [setup guide](docs/setup.md#testing) for a breakdown of the command.
 
 ## Further Reading
 

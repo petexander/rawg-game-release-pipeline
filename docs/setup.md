@@ -69,6 +69,22 @@ uv run dbt run --select path:models/marts
 uv run dbt test --select marts_games__release_calendar marts_games__top_titles
 ```
 
+## Inspecting DuckDB
+
+To browse the warehouse in the DuckDB web UI using the same `DUCKDB_PATH` the pipeline writes to:
+
+```bash
+uv run game-release-pipeline duckdb-ui
+```
+
+If the UI fails because the database is locked, close any other write-mode process first, such as an active dbt run, an Airflow task, or another DuckDB UI session.
+
+For a terminal shell instead of the browser UI:
+
+```bash
+uv run duckdb -readonly game_release.duckdb
+```
+
 ## Optional Airflow
 
 Airflow is present as a secondary path. It is not required for the main local run.
@@ -153,6 +169,14 @@ uv run airflow standalone
 ```bash
 uv run python -m unittest discover -s tests -v
 ```
+
+That command:
+
+- uses `uv run` so the tests execute inside the project's managed environment
+- asks `unittest` to discover test files under [tests/](../tests/)
+- runs them in verbose mode so each test case name is printed as it executes
+
+The suite covers the CLI, settings loading, RAWG fixture ingestion, report generation, and an end-to-end pipeline smoke test. It uses local fixtures and temporary DuckDB files, so no live RAWG API key is required.
 
 ## Troubleshooting
 

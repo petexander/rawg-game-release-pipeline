@@ -20,11 +20,11 @@ This repository is designed to show an end-to-end data engineering workflow in a
 
 - Nested RAWG arrays stay raw as JSON in the ingestion table and are flattened in dbt models.
 - The marts layer centers on a release calendar table with one row per title in the latest snapshot.
-- A separate ranked-titles mart supports the report’s curated near-term highlight sections.
+- A separate ranked-titles mart supports the report's curated near-term highlight sections.
 
 ## What I Would Extend Next
 
-- historical snapshots across multiple run dates
-- richer dimensions for publishers, developers, and storefronts
-- a dashboard or notebook layer on top of the exported marts
-- packaging the Airflow path so it requires less manual environment setup
+- Historical snapshots across multiple run dates.
+- Richer dimensions for publishers, developers, and storefronts.
+- A dashboard or notebook layer on top of the exported marts.
+- Packaging the Airflow path so it requires less manual environment setup.
